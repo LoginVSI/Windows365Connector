@@ -1,0 +1,21 @@
+{
+  "comment": "Windows 365 Connector - Multi-Step Configuration",
+  "steps": [
+    {
+      "name": "click_devices_button",
+      "action": "find_and_click",
+      "className": "Button:fui-Button *",
+      "title": "Devices*",
+      "waitSeconds": 1,
+      "optional": false
+    },
+    {
+      "name": "click_search_field",
+      "action": "find_and_click",
+      "className": "Edit:fui-Input__input *",
+      "title": "Search",
+      "waitSeconds": 1,
+      "optional": false
+    }
+  ]
+}
