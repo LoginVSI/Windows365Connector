@@ -1,0 +1,20 @@
+# VSCode
+.vscode/
+*.code-workspace
+
+# Build artifacts
+bin/
+obj/
+out/
+
+# User-specific
+*.user
+*.suo
+
+# Logs and temp
+*.log
+*.tmp
+*.cache
+
+# PowerShell
+*.ps1xml
