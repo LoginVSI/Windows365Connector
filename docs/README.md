@@ -23,7 +23,7 @@ You need the following in place before wiring this into a test scenario.
   See [link](https://docs.loginvsi.com/login-enterprise/6.3/configuring-the-windows-launcher).
 
 - A test account created in Login Enterprise that can sign in to a Windows 365 Cloud PC.  
-  The account should be added to Accounts in the Login Enterprise web UI.  
+  The account should be added to Accounts in the Login Enterprise web UI, and that account added to an Account Group.  
   See [link](https://docs.loginvsi.com/login-enterprise/6.3/managing-virtual-user-accounts).
 
 - The Windows App installed on the Launcher host that will run this connector. This is the Microsoft client for Windows 365 Cloud PCs.  
@@ -42,7 +42,8 @@ You need the following in place before wiring this into a test scenario.
 
 - A Login Enterprise test scenario that:
 
-  - Uses this Launcher host in the launcher selection.  
+  - Uses this Launcher host in the launcher selection.
+  - Uses the test Account (Group) that has access to the Windows 365 Cloud PC.  
   - Uses the Custom Connector connector type.  
   - Has a Custom Connector command line that calls `Windows365Connector.ps1` (examples are below).  
   - Uses command line tokens so that username, password, host, and TOTP secret are not hardcoded.
@@ -63,7 +64,7 @@ You need the following in place before wiring this into a test scenario.
   Configure the process tracking settings for this connector in the test scenario to improve run tracking and session end detection.  
   See [link](https://docs.loginvsi.com/login-enterprise/6.3/configuring-connectors-and-connections#id-(6.3)ConfiguringConnectorsandConnections-process-tracking-optionalProcessTracking(Optional)).
 
-Once all of this is in place, you can configure the test workload, thresholds, and schedule in the test scenario as you normally would. Run the scenario, watch the Launcher during the first runs to confirm behavior, then review the results in the Test Scenarios reporting pages.  
+Once all of this is in place, you can configure the test configurations in the test scenario as you normally would. Run the scenario, watch the Launcher during the first runs to confirm behavior, then review the results in the Tests' scenarios results pages.  
 For result review guidance, see viewing results of: [Continuous Tests](https://docs.loginvsi.com/login-enterprise/6.3/viewing-continuous-testing-results), [Application tests](https://docs.loginvsi.com/login-enterprise/6.3/viewing-application-testing-results), and [Load Tests](https://docs.loginvsi.com/login-enterprise/6.3/viewing-load-testing-results).
 
 ## Files in this repository
@@ -148,11 +149,15 @@ The connector is started by calling `Windows365Connector.ps1` from the Login Ent
 
 ### Direct example (hardcoded values)
 
-```powershell -NoProfile -ExecutionPolicy RemoteSigned -WindowStyle Minimized -File "C:\LoginEnterprise\Windows365Connector\Windows365Connector.ps1" -EnginePath "C:\LoginEnterprise\ScriptEditor\engine\LoginEnterprise.Engine.Standalone.exe" -Email "LoginVSI1@loginvsi.com" -Password "password" -Title "W365 Productivity - LoginVSI1" -TOTPSecret "totpsecret"```
+```text
+powershell -NoProfile -ExecutionPolicy RemoteSigned -WindowStyle Minimized -File "C:\LoginEnterprise\Windows365Connector\Windows365Connector.ps1" -EnginePath "C:\LoginEnterprise\ScriptEditor\engine\LoginEnterprise.Engine.Standalone.exe" -Email "LoginVSI1@loginvsi.com" -Password "password" -Title "W365 Productivity - LoginVSI1" -TOTPSecret "totpsecret"
+```
 
 ### Example in a Login Enterprise Custom Connector command line
 
-```powershell -NoProfile -ExecutionPolicy RemoteSigned -WindowStyle Minimized -File "C:\LoginEnterprise\Windows365Connector\Windows365Connector.ps1" -EnginePath "C:\LoginEnterprise\ScriptEditor\engine\LoginEnterprise.Engine.Standalone.exe" -Email "{username}@{domain}.com" -Password "{password}" -Title "{host}" -TOTPSecret "{securecustom1}"```
+```text
+powershell -NoProfile -ExecutionPolicy RemoteSigned -WindowStyle Minimized -File "C:\LoginEnterprise\Windows365Connector\Windows365Connector.ps1" -EnginePath "C:\LoginEnterprise\ScriptEditor\engine\LoginEnterprise.Engine.Standalone.exe" -Email "{username}@{domain}.com" -Password "{password}" -Title "{host}" -TOTPSecret "{securecustom1}"
+```
 
 This example assumes:
 
@@ -174,7 +179,9 @@ These match the standard Microsoft identity platform settings and are correct fo
 
 To override the default behavior and use a different algorithm, larger time step window, or more digits:
 
-```powershell -NoProfile -ExecutionPolicy RemoteSigned -WindowStyle Minimized -File "C:\LoginEnterprise\Windows365Connector\Windows365Connector.ps1" -EnginePath "C:\LoginEnterprise\ScriptEditor\engine\LoginEnterprise.Engine.Standalone.exe" -Email "{username}@{domain}.com" -Password "{password}" -Title "{host}" -TOTPSecret "{securecustom1}" -TOTPTimeStep 60 -TOTPDigits 8 -TOTPAlgorithm SHA512```
+```text
+powershell -NoProfile -ExecutionPolicy RemoteSigned -WindowStyle Minimized -File "C:\LoginEnterprise\Windows365Connector\Windows365Connector.ps1" -EnginePath "C:\LoginEnterprise\ScriptEditor\engine\LoginEnterprise.Engine.Standalone.exe" -Email "{username}@{domain}.com" -Password "{password}" -Title "{host}" -TOTPSecret "{securecustom1}" -TOTPTimeStep 60 -TOTPDigits 8 -TOTPAlgorithm SHA512
+```
 
 This allows you to match environments where MFA is configured with:
 
