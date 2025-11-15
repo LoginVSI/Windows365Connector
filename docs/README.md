@@ -61,7 +61,7 @@ You need the following in place before wiring this into a test scenario.
     These tokens require Login Enterprise 6.3 or later.
 
 - Optional: Process and window tracking for the Custom Connector (Login Enterprise 6.3 or later).  
-  Configure the process tracking settings for this connector in the test scenario to improve run tracking and session end detection.  
+  Configure the Process tracking feature's Process name field to be `msrdc` for this connector in the test scenario to allow tracking of  the Cloud PC window logging out and closing at the end of a test loop.
   See [link](https://docs.loginvsi.com/login-enterprise/6.3/configuring-connectors-and-connections#id-(6.3)ConfiguringConnectorsandConnections-process-tracking-optionalProcessTracking(Optional)).
 
 Once all of this is in place, you can configure the test configurations in the test scenario as you normally would. Run the scenario, watch the Launcher during the first runs to confirm behavior, then review the results in the Tests' scenarios results pages.  
