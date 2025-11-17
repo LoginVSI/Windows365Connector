@@ -129,7 +129,23 @@ START
 │  └─ Type email and press Enter
 ├─ Invoke external authentication handler script
 │  ├─ Generate TOTP code if a TOTP secret is supplied
-│  └─ Windows365Connector_AuthenticationWindow.ps1 types password and TOTP
+│  ├─ Locate the Windows authentication window
+│  ├─ Find password field
+│  │  └─ Type password and press Enter
+│  ├─ If no TOTP is required
+│  │  └─ Complete authentication
+│  └─ If TOTP is required
+│     ├─ Detect which MFA screen is shown
+│     │  ├─ "Can't use my Microsoft Authenticator" hyperlink screen
+│     │  ├─ "Use a verification code" button screen
+│     │  └─ Direct "Enter code" field screen
+│     ├─ If hyperlink screen
+│     │  └─ Click hyperlink, then click "Use a verification code"
+│     ├─ If verification button screen
+│     │  └─ Click "Use a verification code"
+│     ├─ When code field appears
+│     │  └─ Type TOTP code and press Enter
+│     └─ Complete authentication
 ├─ Wait for the "Devices" button to confirm successful authentication
 ├─ Load and execute steps from Windows365Connector.json
 │  ├─ Click Devices
