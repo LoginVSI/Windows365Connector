@@ -82,6 +82,8 @@ public class Windows365Connector : ScriptBase
 
             // Start application
             START();
+            Wait(globalWaitInSeconds);
+            MainWindow.Focus();
 
             // Wait for MainWindow to appear 
             Log("[Windows365] Waiting for MainWindow to be present...");
@@ -113,7 +115,7 @@ public class Windows365Connector : ScriptBase
 
                     if (accountProbe != null)
                     {
-                        Log("[Windows365] Account detected (signed-in). Preparing sign-out -> use another account reset.");
+                        Log("[Windows365] Account detected (signed-in). Preparing sign-out -> use another account reset.");                        
                         Wait(globalWaitInSeconds);
                         try { accountProbe.Click(); Log("[Windows365] Clicked Account probe."); } catch (Exception ex) { Log("[Windows365] accountProbe.Click() ex: " + ex.ToString()); }
 
