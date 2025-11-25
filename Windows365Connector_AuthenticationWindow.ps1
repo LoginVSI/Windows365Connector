@@ -1,5 +1,8 @@
 param(
     [Parameter(Mandatory=$true)]
+    [string]$Email,
+    
+    [Parameter(Mandatory=$true)]
     [string]$Password,
     
     [Parameter(Mandatory=$false)]
@@ -25,6 +28,7 @@ function Write-Log {
 }
 
 Write-Log "Windows365Connector_AuthenticationWindow.ps1 started"
+Write-Log "Email: [REDACTED]"
 Write-Log "Password: [REDACTED]"
 Write-Log "TOTP Code: $(if ([string]::IsNullOrEmpty($TOTPCode)) { '[NOT PROVIDED]' } else { '[PROVIDED]' })"
 Write-Log "Timeout: $TimeoutSeconds seconds"
@@ -90,12 +94,44 @@ try {
         $authWindow = $authWindows[0]
         Write-Log "Authentication Window found."
         
-        # Step 1: Find and fill password field
-        Write-Log "Step 1: Finding password field (timeout: $($TimeoutSeconds)s)..."
+        # Step 0: Find and fill email field
+        Write-Log "Step 0: Finding email field (timeout: $($TimeoutSeconds)s)..."
         $editCondition = New-Object System.Windows.Automation.PropertyCondition(
             [System.Windows.Automation.AutomationElement]::ControlTypeProperty,
             [System.Windows.Automation.ControlType]::Edit
         )
+        $editControls = Find-Element -SearchRoot $authWindow -Condition $editCondition -Description "email field" -TimeoutSeconds $TimeoutSeconds
+        
+        if ($editControls -eq $null) {
+            Write-Log "ERROR: Email field not found."
+            exit 2
+        }
+        
+        $emailField = $null
+        foreach ($control in $editControls) {
+            if ($control.Current.Name -match "Enter your email") {
+                $emailField = $control
+                break
+            }
+        }
+        
+        if ($emailField -eq $null) {
+            Write-Log "ERROR: Email field not found."
+            exit 2
+        }
+        
+        Start-Sleep -Seconds 1
+        Write-Log "Typing email..."
+        $emailField.SetFocus()
+        Start-Sleep -Milliseconds 500
+        Add-Type -AssemblyName System.Windows.Forms
+        [System.Windows.Forms.SendKeys]::SendWait($Email)
+        [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
+        Write-Log "Email submitted."
+        Start-Sleep -Seconds 2
+        
+        # Step 1: Find and fill password field
+        Write-Log "Step 1: Finding password field (timeout: $($TimeoutSeconds)s)..."
         $editControls = Find-Element -SearchRoot $authWindow -Condition $editCondition -Description "password field" -TimeoutSeconds $TimeoutSeconds
         
         if ($editControls -eq $null) {
@@ -120,7 +156,6 @@ try {
         Write-Log "Typing password..."
         $passwordField.SetFocus()
         Start-Sleep -Milliseconds 500
-        Add-Type -AssemblyName System.Windows.Forms
         [System.Windows.Forms.SendKeys]::SendWait($Password)
         [System.Windows.Forms.SendKeys]::SendWait("{ENTER}")
         Write-Log "Password submitted."

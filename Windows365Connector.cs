@@ -41,7 +41,7 @@ public class Windows365Connector : ScriptBase
             string totpSecret      = GetOptionalArg("--secret", "TOTP_SECRET");
 
             Log("[Windows365] Script start.");
-            Log($"[Windows365] Email: {runtimeEmail}");
+            Log($"[Windows365] Email: [REDACTED]");
             Log($"[Windows365] Title: {cloudPcTitle}");
             Log($"[Windows365] TOTP: {(string.IsNullOrEmpty(totpSecret) ? "Disabled" : "Enabled")}");
 
@@ -170,7 +170,7 @@ public class Windows365Connector : ScriptBase
                     Log("[Windows365] SignInButton not found at expected location.");
                 }
 
-                // After clicking Sign in, watch for either "Use another account" or the BasicEmbeddedBrowser initial login window
+                // After clicking Sign in, watch for either "Use another account" or the ApplicationFrameWindow auth window
                 bool subFlowTaken = false;
                 DateTime subStop = DateTime.UtcNow.AddSeconds(globalFunctionTimeoutInSeconds);
                 while (DateTime.UtcNow < subStop && !subFlowTaken)
@@ -187,27 +187,11 @@ public class Windows365Connector : ScriptBase
                             break;
                         }
 
-                        var initialLoginWindow = FindTopLevelWindowByClassAndProcesses("Win32 Window:BasicEmbeddedBrowser", new[] { "Windows365", "Windows365.exe", "ApplicationFrameHost", "ApplicationFrameHost.exe" }, 1);
-                        if (initialLoginWindow != IntPtr.Zero)
+                        // Check for ApplicationFrameWindow (new email auth window location)
+                        var authWindowHwnd = FindTopLevelWindowByClassAndProcesses("Win32 Window:ApplicationFrameWindow", new[] { "explorer", "ApplicationFrameHost" }, 1);
+                        if (authWindowHwnd != IntPtr.Zero)
                         {
-                            try
-                            {
-                                Log("[Windows365] After Sign in -> found BasicEmbeddedBrowser initial login window; focusing and typing email.");                                
-                                Wait(globalWaitInSeconds);
-                                BringWindowToFront(initialLoginWindow);
-                                
-                                var emailEdit = MainWindow.FindControl(className: "Edit", title: "Email address", timeout: globalFunctionTimeoutInSeconds, continueOnError: true);
-                                if (emailEdit != null)
-                                {
-                                    Wait(globalWaitInSeconds);
-                                    try { emailEdit.Click(); emailEdit.Type(runtimeEmail + "{enter}", cpm: globalCharactersPerMinuteToType, hideInLogging: false); Log("[Windows365] Typed email into email edit (post sign-in initial window)."); } catch (Exception ex) { Log("[Windows365] emailEdit.Type() ex: " + ex.ToString()); }
-                                }
-                                else
-                                {
-                                    Log("[Windows365] Could not find Email edit after initial login window focus (falling back).");
-                                }
-                            }
-                            catch (Exception ex) { Log("[Windows365] initialLoginWindow handling ex: " + ex.ToString()); }
+                            Log("[Windows365] After Sign in -> detected ApplicationFrameWindow auth window. Delegating to external auth handler.");
                             subFlowTaken = true;
                             break;
                         }
@@ -217,40 +201,11 @@ public class Windows365Connector : ScriptBase
                     Wait(globalWaitInSeconds);
                 }
 
-                if (!subFlowTaken) Log("[Windows365] Subflow after Sign in: neither Use another account nor BasicEmbeddedBrowser detected.");
-            }
-
-            // If neither path was taken (rare), attempt fallback Sign in
-            if (!_accountPathTaken && !_signInPathTaken)
-            {
-                Log("[Windows365] Fallback: attempt to click Sign in.");
-                var fallback = MainWindow.FindControl(className: "Button:fui-Button *", title: "Sign in", timeout: globalFunctionTimeoutInSeconds, continueOnError: true);
-                if (fallback != null)
-                {
-                    Wait(globalWaitInSeconds);
-                    try { fallback.Click(); Log("[Windows365] Clicked fallback Sign in."); } catch (Exception ex) { Log("[Windows365] fallback.Click() ex: " + ex.ToString()); }
-                }
+                if (!subFlowTaken) Log("[Windows365] Subflow after Sign in: neither Use another account nor ApplicationFrameWindow detected.");
             }
 
             // ---------------------------
-            // Credential (email) on MainWindow if present
-            // ---------------------------
-            try
-            {
-                var EmailAddressFieldMain = MainWindow.FindControl(className: "Edit", title: "Email address", timeout: globalFunctionTimeoutInSeconds, continueOnError: true);
-                if (EmailAddressFieldMain != null)
-                {
-                    Wait(globalWaitInSeconds);
-                    EmailAddressFieldMain.Click();
-                    EmailAddressFieldMain.Type(runtimeEmail + "{enter}", cpm: globalCharactersPerMinuteToType, hideInLogging: false);
-                    Log("[Windows365] Typed email into MainWindow email field.");
-                }
-                else Log("[Windows365] MainWindow email field not found (it may be handled elsewhere).");
-            }
-            catch (Exception ex) { Log("[Windows365] Email typing exception: " + ex.ToString()); }
-
-            // ---------------------------
-            // EXTERNAL AUTHENTICATION HANDLER (Password + TOTP)
+            // EXTERNAL AUTHENTICATION HANDLER (Email + Password + TOTP)
             // ---------------------------
             try
             {
@@ -264,7 +219,7 @@ public class Windows365Connector : ScriptBase
                     Log("[Windows365] TOTP code generated (hidden from logging)");
                 }
 
-                int authExitCode = InvokeAuthenticationHandler(authScript, runtimePassword, totpCode, globalFunctionTimeoutInSeconds);
+                int authExitCode = InvokeAuthenticationHandler(authScript, runtimeEmail, runtimePassword, totpCode, globalFunctionTimeoutInSeconds);
                 
                 if (authExitCode == 0)
                 {
@@ -569,14 +524,14 @@ public class Windows365Connector : ScriptBase
     // -------------------------------------------------------------------------
     // External Authentication Handler Invocation
     // -------------------------------------------------------------------------
-    private int InvokeAuthenticationHandler(string scriptPath, string password, string totpCode, int timeoutSeconds)
+    private int InvokeAuthenticationHandler(string scriptPath, string email, string password, string totpCode, int timeoutSeconds)
     {
         try
         {
             var psi = new ProcessStartInfo
             {
                 FileName = "powershell.exe",
-                Arguments = BuildAuthHandlerArgs(scriptPath, password, totpCode, timeoutSeconds),
+                Arguments = BuildAuthHandlerArgs(scriptPath, email, password, totpCode, timeoutSeconds),
                 UseShellExecute = false,
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
@@ -612,9 +567,10 @@ public class Windows365Connector : ScriptBase
         }
     }
 
-    private string BuildAuthHandlerArgs(string scriptPath, string password, string totpCode, int timeoutSeconds)
+    private string BuildAuthHandlerArgs(string scriptPath, string email, string password, string totpCode, int timeoutSeconds)
     {
         var args = $"-ExecutionPolicy RemoteSigned -WindowStyle Minimized -NoProfile -File \"{scriptPath}\" " +
+                   $"-Email \"{EscapeForPowerShell(email)}\" " +
                    $"-Password \"{EscapeForPowerShell(password)}\" " +
                    $"-TimeoutSeconds {timeoutSeconds}";
 
